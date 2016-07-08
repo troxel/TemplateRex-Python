@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>$title</title>
+  <meta name="description" content="Description">
+
+  <link rel="stylesheet" href="$url_base_css">
+</head>
+
+<body>
+
+<!-- BEGIN name=content -->
+Main Content 
+<!-- BEGIN name=tbl -->
+<table>
+  <caption>List of flowers</caption>
+  <!-- BEGIN name=row -->
+	<tr><td>&func_test_1_args($inc)</td><td>Name: $name</td><td>Color: $color</td></tr>
+	<!-- END name=row -->
+</table>
+<!-- END name=tbl -->
+
+<!-- END name=content -->
+
+&func_test_no_args()
+&func_test_1_args(1)
+&func_test_list_args(1,2,3)
+
+<!-- BEGIN name=ftr -->
+Ftr
+<!-- END name=ftr -->
+
+</body>
+</html>

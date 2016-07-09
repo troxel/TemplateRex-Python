@@ -26,4 +26,4 @@
                 '  <caption>Battery Voltages</caption>\n'
                 '  $row_complex\n'
                 '</table>',
- 'user_sec': '<li> user.username'}
+ 'user_sec': '<li> $username'}

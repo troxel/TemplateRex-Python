@@ -4,6 +4,8 @@ import sys
 import json
 
 # The test object
+    
+sys.path.append('../')
 from template import TemplateRex
 
 fspec_template =  't-home.html'
@@ -28,9 +30,6 @@ class TestCase(unittest.TestCase):
       pprint.pprint(trex.tsections,stream=fid)
       print("Creating ",fspec_tsections," test data")
       fid.close()
-
-   
-
 
     fid = open( fspec_tsections,'r')
     tsections_str = fid.read()
@@ -68,6 +67,7 @@ class TestCase(unittest.TestCase):
     trex.render_sec('row_complex')
     trex.render_sec('tbl_complex')
 
+    # Test if object is passed instead of dict type
     # -----------------------
     class User(object):
 
@@ -79,9 +79,7 @@ class TestCase(unittest.TestCase):
     # -----------------------
 
     for user in users:
-        print(type(user))
         trex.render_sec('user_sec',user)
-
 
     rtn = trex.render_sec('ftr')
     rtn_str = trex.render()

@@ -1,5 +1,6 @@
 import os
 import os.path
+import sys
 import re
 #from string import Template
 
@@ -11,7 +12,7 @@ pp = pprint.PrettyPrinter(indent=4)
 
 class TemplateRex:
     
-    template_dirs = ["./", "./templates"]
+    template_dirs = ["./", "./templates", '/']
     
     cmnt_prefix = '<!--'
     cmnt_postfix = '-->'
@@ -43,12 +44,12 @@ class TemplateRex:
 
         for key in args.keys():
             self.__dict__[key] = args[key]
-
+            
         # load template based on a search list
-        self.load_template(self.fname)
+        self.get_template(self.fname)
        
     # ----------------------
-    def load_template(self,fname):
+    def get_template(self,fname):
         """ Loads a template into self.tsection """
 
         for dir_spec in self.template_dirs:
@@ -63,7 +64,9 @@ class TemplateRex:
                         self.tsections = marshal.load(fid)
                         fid.close()
                 else:
-                    fid = open(fspec, 'r')
+                    try: fid = open(fspec, 'r')
+                    except: continue
+                    
                     file_str = fid.read()
                     fid.close()
 
@@ -72,9 +75,8 @@ class TemplateRex:
                     if match:
                         fname_base = match.group('nm')
                         # Save to 'base' as this is rendered in the final render if present
-                        self.tsections['main'] = self.load_template(fname_base)
+                        self.tsections['main'] = self.get_template(fname_base)
                         self.tsections['main_child'] = self.process_template(file_str)
-                        
                     else:
                         self.tsections['main'] = self.process_template(file_str)
                     
@@ -83,7 +85,8 @@ class TemplateRex:
                 break
 
         if not self.tsections:
-            raise Exception('No Template File Found in -> ' +  ' , '.join(self.template_dirs) )
+            print('No Template File %s Found' % (fname),'in search path -> ', ' , '.join(self.template_dirs))
+            raise
 
         return self.tsections['main']
 
@@ -93,6 +96,7 @@ class TemplateRex:
         def process_capture(obj):
 
             name_sec = obj.group(1)
+            print(name_sec)
 
             self.csections[name_sec] = []
             self.last_parent.append(name_sec)
@@ -118,6 +122,9 @@ class TemplateRex:
             self.psections_str[child] = "".join(self.psections_lst[child])
             self.psections_lst[child] = []
         
+        if not isinstance(context, dict):
+            context = context.__dict__
+            
         context.update(self.psections_str)
 
         if section == 'main':

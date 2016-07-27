@@ -18,8 +18,9 @@ class TemplateRex:
     cmnt_postfix = '-->'
     func_prefix = '&'
     id_pattern  = r'\$({?[a-zA-Z][\w]+}?)'
+    
         
-       # ----------------------
+    # ----------------------
     def __init__(self, **args):
 
         #if 'fname' in args.keys():
@@ -34,6 +35,8 @@ class TemplateRex:
         self.psections_lst = { 'main':[], 'base':[]}   # processed sections as lst
         self.csections = { 'main':[], 'base':[] }  # child sections
         self.last_parent = ['main']     # used to determine last found parent in recursive func
+    
+        self.tsections_funcs = {}       
 
         self.block_pattern = self.cmnt_prefix + r'\s*BEGIN name=(?P<nm>\w+)\s*' + self.cmnt_postfix + r'(?P<inner>.*?)' + self.cmnt_prefix + r'\s*END name=\1 ' + self.cmnt_postfix
         self.base_pattern  = self.cmnt_prefix + r'\s*BASE name=(?P<nm>\S+)\s*' + self.cmnt_postfix
@@ -76,11 +79,12 @@ class TemplateRex:
                         fname_base = match.group('nm')
                         # Save to 'base' as this is rendered in the final render if present
                         self.tsections['main'] = self.get_template(fname_base)
-                        self.tsections['main_child'] = self.process_template(file_str)
+                        self.tsections['main_child'] = self.
+                        (file_str)
                     else:
                         self.tsections['main'] = self.process_template(file_str)
                     
-                    # if compile_flg marshal tsections to fspec_msh
+                    ### if compile_flg marshal tsections to fspec_msh
 
                 break
 
@@ -96,7 +100,7 @@ class TemplateRex:
         def process_capture(obj):
 
             name_sec = obj.group(1)
-            print(name_sec)
+            ##print(name_sec)
 
             self.csections[name_sec] = []
             self.last_parent.append(name_sec)

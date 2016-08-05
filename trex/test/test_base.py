@@ -5,6 +5,7 @@ import os
 import json
 
 # The test object
+sys.path.append('../')
 from template import TemplateRex
 
 fspec_template =  't-detail.html'

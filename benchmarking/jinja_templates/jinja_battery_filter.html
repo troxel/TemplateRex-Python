@@ -1,0 +1,34 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<style>
+td.low { background-color:lightblue;}
+td.med { background-color:lightgreen;}
+td.high { background-color:orangered ;}
+</style>
+
+<table>
+  {% set break_row=break_rows|length %}
+   
+  <tr><th></th>
+  {%- for index in break_rows %}
+    <th>{{index}}</th>
+  {%- endfor %}
+  </tr>
+    
+  <tr><th>0</th>
+  {%- for status in battery_status|sort(attribute='volt') %}
+    {% if status.volt > 2 %}{% set cell_class='high' %}
+    {% elif status.volt > 1 %}{% set cell_class='med' %}
+    {% elif status.volt <= 1 %}{% set cell_class='low' %}
+    {% endif %}
+    <td class="{{ cell_class }}">Volt:{{ status.volt|round(1) }}<br>Temp: {{ status.temp|round }} </td>
+     {% if loop.index is divisibleby break_row %}
+        {% if not loop.last %}
+            </tr><tr><th>{{loop.index}}</th>
+        {% endif %}
+     {% endif %}
+  {%- endfor %}
+  </tr>
+</table>
+{% endblock %}

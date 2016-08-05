@@ -1,0 +1,40 @@
+{% extends "jinja_layout.html" %}
+
+{% block body %}
+<style>
+td.low { background-color:lightblue;}
+td.med { background-color:lightgreen;}
+td.high { background-color:orangered ;}
+
+tr.odd { color: #000000;}
+tr.even { color:#000097;}
+
+div.id { font-size:.7em}
+</style>
+
+<table>
+  {% set break_row=break_row %}
+   
+  <tr><th></th>
+  {%- for index in range(1,break_row+1) %}
+    <th >{{index}}</th>
+  {%- endfor %}
+  </tr>
+    
+  {% set row_class = cycler('odd', 'even') %}
+  <tr class="{{ row_class.next() }}"><th>0</th>
+  {%- for status in battery_status %}
+    {% if status.volt > 2 %}{% set cell_class='high' %}
+    {% elif status.volt > 1 %}{% set cell_class='med' %}
+    {% elif status.volt <= 1 %}{% set cell_class='low' %}
+    {% endif %}
+    <td class="{{ cell_class }}">Volt:{{ status.volt }}<br>Temp: {{ status.temp }}</td>
+     {% if loop.index is divisibleby break_row %}
+        {% if not loop.last %}
+            </tr><tr class="{{ row_class.next() }}"><th>{{loop.index}}</th>
+        {% endif %}
+     {% endif %}
+  {%- endfor %}
+  </tr>
+</table>
+{% endblock %}

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>$title</title>
+  <meta name="description" content="Description">
+
+  <link rel="stylesheet" href="$url_base_css">
+  
+  <style>
+  .odd {color:blue;}
+  .even {color:blue;}
+  </style>
+  
+</head>
+
+<body>
+
+<!-- BEGIN name=content -->
+Main Content 
+Title: <pre>&center($title,width=70)</pre>
+
+Comment: &nltobr($comment)
+
+Todays Date: &dateformat($now,fmt='%Y/%m/%d %T')
+
+<!-- BEGIN name=tbl -->
+<table>
+  <caption>List of flowers</caption>
+  <!-- BEGIN name=row -->
+	<tr class="&cycler('odd', 'even')"><td>$inc</td><td>Name: $name</td><td>Color: $color</td></tr>
+	<!-- END name=row -->
+</table>
+<!-- END name=tbl -->
+
+<!-- END name=content -->
+
+
+</body>
+</html>

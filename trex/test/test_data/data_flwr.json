@@ -1,1 +1,3 @@
-[[{"name": "Lilly", "color": "Purple"}, {"name": "Butter Cup", "color": "Yellow", "extra": "nonexistent"}], [{"name": "Apple", "color": "Red"}, {"name": "Peach", "color": "Pale Orange", "extra": "nonexistent"}]]
+[[{"name": "Lilly", "color": "Purple"}, {"name": "Rose", "color": "Red"}, {"name": "Butter Cup", "color": "Yellow", "extra": "nonexistent"}], 
+ [{"name": "Apple", "color": "Red"}, {"name": "Peach", "color": "Pale Orange", "extra": "nonexistent"}]
+]

@@ -17,7 +17,28 @@ class TemplateRex:
     cmnt_prefix = '<!--'
     cmnt_postfix = '-->'
     func_prefix = '&'
-        
+    
+    fld_struct = {'default':{'pre':'$','fld':'([a-zA-Z_]\w*)','post':''}, 
+                  'pyfmt':  {'pre':'{', 'fld':'([a-zA-Z_][\S]*?)','post':'}'} }
+
+    # ----------------------
+    def substitute_fmt(self, str_in, context):
+
+        rtn = str_in.format(**context)
+        return rtn
+    fld_struct['pyfmt']['subst'] = substitute_fmt
+
+    # ----------------------
+    def substitute_re(self, str_in, context):
+        _str = str
+        def process_capture(obj):
+            try: return _str(context[obj.group(1)])
+            except: return "" 
+
+        rtn = self.fld['re'].sub(process_capture, str_in)
+        return rtn
+    fld_struct['default']['subst'] = substitute_re
+
     # ----------------------
     def __init__(self, **args):
 
@@ -34,15 +55,21 @@ class TemplateRex:
         self.cblks = { 'BLK_MAIN':[], 'base':[] }  # child sections
         self.last_parent = ['BLK_MAIN']     # used to determine last found parent in recursive func
     
-        self.block_pattern = self.cmnt_prefix + r'\s*BEGIN=(?P<nm>\w+)\s*' + self.cmnt_postfix + r'(?P<inner>.*?)' + self.cmnt_prefix + r'\s*END=\1 ' + self.cmnt_postfix
+        self.block_pattern = self.cmnt_prefix + r'\s*BEGIN=(?P<nm>\w+)\s+(?P<opt>[\w=,]+)?\s*' + self.cmnt_postfix + r'(?P<blk>.*?)' + self.cmnt_prefix + r'\s*END=\1 ' + self.cmnt_postfix
         self.base_pattern  = self.cmnt_prefix + r'\s*BASE=(?P<nm>\S+)\s*' + self.cmnt_postfix
         self.func_pattern  = self.func_prefix + r'({?[a-zA-Z][\w]+}?)\((.*?)\)'
         
         self.block_re  = re.compile(self.block_pattern, re.DOTALL)
         self.func_re   = re.compile(self.func_pattern)
-        self.fld_re     = re.compile(r'{(\w+)\S*?}', re.DOTALL)
+        self.fld_re    = re.compile(r'{(\w+)\S*?}', re.DOTALL)  ##### < remove
         self.quotes_re = re.compile('[\'\"]')
 
+        for key in self.fld_struct:
+            fld = self.fld_struct[key]
+            fld['re'] = re.compile(  re.escape(fld['pre']) + fld['fld']+ fld['post'], re.DOTALL )
+     
+        self.fld = self.fld_struct['default'] 
+       
         self.BLK_MAIN_pre  = "{0} {1} {2}".format(self.cmnt_prefix,"BEGIN=BLK_MAIN",self.cmnt_postfix)
         self.BLK_MAIN_post = "{0} {1} {2}".format(self.cmnt_prefix,"END=BLK_MAIN",self.cmnt_postfix)
 
@@ -52,12 +79,13 @@ class TemplateRex:
         # load template based on a search list
         self.get_template(self.fname)
         
-        #print("***********")
-        #pp.pprint(self.tblks)
-        #pp.pprint(self.cblks)
-        #print("***********")
-        #sys.exit()
-       
+        """
+        print("***********")
+        pp.pprint(self.tblks)
+        pp.pprint(self.cblks)
+        print("***********")
+        sys.exit()
+        """
     # ----------------------
     def get_template(self,fname):
         """ Loads a template into self.tsection """
@@ -84,7 +112,6 @@ class TemplateRex:
                     match = re.match(self.base_pattern, file_str)
                     if match:
                         fname_base = match.group('nm')
-                        # Save to 'base' as this is rendered in the final render if present
                         self.get_template(fname_base)
                         self.parse_template(file_str)
                     else:
@@ -107,12 +134,14 @@ class TemplateRex:
     def parse_template(self, t_str):
 
         def parse_capture(obj):
-            blk_name = obj.group(1)
+            blk_name = obj.group('nm')
             
             self.cblks[blk_name] = []
             self.last_parent.append(blk_name)
 
-            proc_rtn = self.parse_template(obj.group(2))  # recursive call group(2) is next template section
+            proc_rtn = self.parse_template(obj.group('blk'))  # recursive call group(2) is next template section
+
+            #if obj.group('opt'): print("******");print(obj.group('opt'));
 
             self.last_parent.pop()
             self.cblks[self.last_parent[-1]].append(blk_name)
@@ -121,14 +150,14 @@ class TemplateRex:
             self.tblks[blk_name] = {}
             
             self.tblks[blk_name]['blk_str'] = proc_rtn.strip()
-            self.tblks[blk_name]['flds'] = self.fld_re.findall(self.tblks[blk_name]['blk_str'])  
+            self.tblks[blk_name]['flds'] = self.fld['re'].findall(self.tblks[blk_name]['blk_str'])  
             self.tblks[blk_name]['funcs'] = {}
 
             self.pblks_str[blk_name] = ""   # need to initialize to prevent key exceptions
             self.pblks_lst[blk_name] = []   # ...
             
-            return "{" + blk_name + "}"
-
+            return self.fld['pre'] + blk_name + self.fld['post']
+       
         blk = self.block_re.sub(parse_capture, t_str, re.DOTALL)
         return blk
         
@@ -138,7 +167,7 @@ class TemplateRex:
         # ----------------------------
         def arg_study(arg):
      
-            (arg,cnt) = self.fld_re.subn('',arg)
+            (arg,cnt) = self.fld[re].subn('',arg)
             if cnt: return arg,True                 # context
         
             (arg,cnt) = self.quotes_re.subn('',arg)
@@ -187,7 +216,7 @@ class TemplateRex:
                 val,ctx = arg_study(val)
                 self.tblks[blk_name]['funcs'][slug]['kwargs'][kw] = val
 
-            return "{" + slug + "}"
+            return self.fld['pre'] + slug + self.fld['post']
         
         for blk_name in self.tblks:                 
             self.tblks[blk_name]['blk_str'] = self.func_re.sub(parse_capture, self.tblks[blk_name]['blk_str'] )
@@ -208,13 +237,10 @@ class TemplateRex:
         if self.cblks[blk]:
             context.update(self.pblks_str)
 
-
-
         for child in self.cblks[blk]:
             #self.pblks_str[child] = "\n".join(self.pblks_lst[child])
             self.pblks_str[child] = ""
             self.pblks_lst[child] = []
-
 
         # Function processing
         for slug in self.tblks[blk]['funcs']:
@@ -226,12 +252,8 @@ class TemplateRex:
             func_kwargs = self.tblks[blk]['funcs'][slug]['kwargs']
             context[slug] = self.tblks[blk]['funcs'][slug]['ref'](*func_args,**func_kwargs)
 
-        # Fld substitution
-        if blk == 'BLK_MAIN':
-            self.pblks_str[blk] = self.subtitute_fld(self.tblks[blk]['blk_str'],context)
-        else: 
-            #self.pblks_lst[blk].append( self.subtitute_fld(self.tblks[blk]['blk_str'],context) ) 
-            self.pblks_str[blk] += self.subtitute_fld(self.tblks[blk]['blk_str'],context) 
+        #self.pblks_lst[blk].append( self.subtitute_fld(self.tblks[blk]['blk_str'],context) ) 
+        self.pblks_str[blk] += self.fld['subst']( self, self.tblks[blk]['blk_str'], context ) 
             
         return(self.pblks_str[blk])
 
@@ -239,19 +261,5 @@ class TemplateRex:
     def render(self, context={}):
         return self.render_sec('BLK_MAIN', context)
 
-    # ----------------------
-    def subtitute_fld(self, str_in, context):
 
-        rtn = str_in.format(**context)
-        return rtn
-
-# ----------------------
-    def subtitute_var(self, str_in, context):
-        _str = str
-        def process_capture(obj):
-            try: return _str(context[obj.group(1)])
-            except: return "" 
-
-        rtn = self.id_re.sub(process_capture, str_in)
-        return rtn
 

@@ -225,7 +225,6 @@ class TemplateRex:
             
     # ----------------------
     def render_sec(self, blk, context={}):
-
         if not blk in self.tblks: 
             print("Warning no blk",blk,"found in template")
             return

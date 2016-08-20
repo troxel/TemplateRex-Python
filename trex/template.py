@@ -22,24 +22,6 @@ class TemplateRex:
                   'pyfmt':  {'pre':'{', 'fld':'([a-zA-Z_][\S]*?)','post':'}'} }
 
     # ----------------------
-    def substitute_fmt(self, str_in, context):
-
-        rtn = str_in.format(**context)
-        return rtn
-    fld_struct['pyfmt']['subst'] = substitute_fmt
-
-    # ----------------------
-    def substitute_re(self, str_in, context):
-        _str = str
-        def process_capture(obj):
-            try: return _str(context[obj.group(1)])
-            except: return "" 
-
-        rtn = self.fld['re'].sub(process_capture, str_in)
-        return rtn
-    fld_struct['default']['subst'] = substitute_re
-
-    # ----------------------
     def __init__(self, **args):
 
         #if 'fname' in args.keys():
@@ -50,18 +32,19 @@ class TemplateRex:
     
         self.tblks={}
  
-        self.pblks_str = { 'BLK_MAIN':"", 'base':""}   # processed sections rendered str
-        self.pblks_lst = { 'BLK_MAIN':[], 'base':[]}   # processed sections as lst
-        self.cblks = { 'BLK_MAIN':[], 'base':[] }  # child sections
+        self.pblks_str = { 'BLK_MAIN':""}   # processed sections rendered str
+        self.pblks_lst = { 'BLK_MAIN':[]}   # processed sections as lst
+        self.cblks     = { 'BLK_MAIN':[]}  # child sections
         self.last_parent = ['BLK_MAIN']     # used to determine last found parent in recursive func
     
         self.block_pattern = self.cmnt_prefix + r'\s*BEGIN=(?P<nm>\w+)\s+(?P<opt>[\w=,]+)?\s*' + self.cmnt_postfix + r'(?P<blk>.*?)' + self.cmnt_prefix + r'\s*END=\1 ' + self.cmnt_postfix
-        self.base_pattern  = self.cmnt_prefix + r'\s*BASE=(?P<nm>\S+)\s*' + self.cmnt_postfix
+        self.incl_pattern  = self.cmnt_prefix + r'\s*INCLUDE=(?P<nm>\w[\w.\-]+\w)\s*' + self.cmnt_postfix
+        self.base_pattern  = self.cmnt_prefix + r'\s*BASE=(?P<nm>\w+[\w\-.]+)\s*' + self.cmnt_postfix
         self.func_pattern  = self.func_prefix + r'({?[a-zA-Z][\w]+}?)\((.*?)\)'
         
         self.block_re  = re.compile(self.block_pattern, re.DOTALL)
         self.func_re   = re.compile(self.func_pattern)
-        self.fld_re    = re.compile(r'{(\w+)\S*?}', re.DOTALL)  ##### < remove
+        self.incl_re   = re.compile(self.incl_pattern)
         self.quotes_re = re.compile('[\'\"]')
 
         for key in self.fld_struct:
@@ -89,46 +72,70 @@ class TemplateRex:
     # ----------------------
     def get_template(self,fname):
         """ Loads a template into self.tsection """
-
-        for dir_spec in self.template_dirs:
-            fspec = os.path.join(dir_spec, fname)
-            if os.path.isfile(fspec):
-
-                # Assumes ext .html but replace twice as fast as re
-                fspec_msh = fspec.replace('.html','.msh')
-                if os.path.isfile(fspec_msh):
-                    if os.stat(fspec_msh).st_mtime > os.stat(fspec_msh).st_mtime:
-                        fid = open(fspec_msh, 'rb')
-                        self.tblks = marshal.load(fid)
-                        fid.close()
-                else:
-                    try: fid = open(fspec, 'r')
-                    except: continue
-                    
-                    file_str = fid.read()
+        fspec = self.search_template(fname)
+        
+        fspec_cmp = re.sub('\.\w+$','pyc',fspec)
+        if os.path.isfile(fspec_cmp):
+            if os.stat(fspec_cmp).st_mtime > os.stat(fspec).st_mtime:
+                try: 
+                    fid = open(fspec_cmp, 'rb')
+                    self.tblks = marshal.load(fid)
                     fid.close()
-
-                    # First check for a base specifier
-                    match = re.match(self.base_pattern, file_str)
-                    if match:
-                        fname_base = match.group('nm')
-                        self.get_template(fname_base)
-                        self.parse_template(file_str)
-                    else:
-                        # If main template wrap in a main block for parse_template
-                        template_str = "{0}\n{1}\n{2}\n".format(self.BLK_MAIN_pre,file_str,self.BLK_MAIN_post)
-                        self.parse_template(template_str)
+                    return(self.tblks)
+                except: 
+                    print('Error reading compiled template File {0}'.format(fspec_cmp))
+                    raise
                     
-                    # Process functions populates self.tblks[blk_name]['funcs']
-                    self.parse_functions()
+        try: 
+            fid = open(fspec, 'r') 
+            file_str = fid.read()
+            fid.close()
+        except: 
+            print('Error reading template File {0}'.format(fspec_cmp))
+            raise
+             
+        # Check for includes 
+        def incl_capture(obj):
+            fname_incl = obj.group('nm')
+            fspec_incl = self.search_template(fname_incl)
+            try: 
+                fid = open(fspec_incl, 'r') 
+                incl_str = fid.read()
+                fid.close()
+            except: 
+                print('Error reading include template File {0}'.format(fspec_incl))
+                raise
                     
-                    ### if compile_flg marshal tsections to fspec_msh
-
-                break
+            return(incl_str)        
+        file_str = self.incl_re.sub(incl_capture, file_str, re.DOTALL)
+               
+        # Check for a base specifier
+        match = re.match(self.base_pattern, file_str)
+        if match:
+             fname_base = match.group('nm')
+             self.get_template(fname_base)
+             self.parse_template(file_str)
+        else:
+             # If main template wrap in a main block for parse_template
+             file_str = self.BLK_MAIN_pre + file_str + self.BLK_MAIN_post
+             self.parse_template(file_str)
+         
+        # Process functions populates self.tblks[blk_name]['funcs']
+        self.parse_functions()
 
         if not self.tblks:
             print('No Template File %s Found' % (fname),'in search path -> ', ' , '.join(self.template_dirs))
             raise
+        return(self.tblks)
+
+    # ----------------------
+    def search_template(self,fname):
+        for dir_spec in self.template_dirs:
+            fspec = os.path.join(dir_spec, fname)
+            if os.path.isfile(fspec):
+                return(fspec)
+        print('No Template File {0} Found in search path {1}'.format(fname), ','.join(self.template_dirs))
+        raise
 
     # ----------------------
     def parse_template(self, t_str):
@@ -149,7 +156,7 @@ class TemplateRex:
             # Assign and init to template blk structure  
             self.tblks[blk_name] = {}
             
-            self.tblks[blk_name]['blk_str'] = proc_rtn.strip()
+            self.tblks[blk_name]['blk_str'] = proc_rtn.lstrip()
             self.tblks[blk_name]['flds'] = self.fld['re'].findall(self.tblks[blk_name]['blk_str'])  
             self.tblks[blk_name]['funcs'] = {}
 
@@ -167,7 +174,7 @@ class TemplateRex:
         # ----------------------------
         def arg_study(arg):
      
-            (arg,cnt) = self.fld[re].subn('',arg)
+            (arg,cnt) = self.fld['re'].subn('',arg)
             if cnt: return arg,True                 # context
         
             (arg,cnt) = self.quotes_re.subn('',arg)
@@ -237,7 +244,6 @@ class TemplateRex:
             context.update(self.pblks_str)
 
         for child in self.cblks[blk]:
-            #self.pblks_str[child] = "\n".join(self.pblks_lst[child])
             self.pblks_str[child] = ""
             self.pblks_lst[child] = []
 
@@ -251,8 +257,7 @@ class TemplateRex:
             func_kwargs = self.tblks[blk]['funcs'][slug]['kwargs']
             context[slug] = self.tblks[blk]['funcs'][slug]['ref'](*func_args,**func_kwargs)
 
-        #self.pblks_lst[blk].append( self.subtitute_fld(self.tblks[blk]['blk_str'],context) ) 
-        self.pblks_str[blk] += self.fld['subst']( self, self.tblks[blk]['blk_str'], context ) 
+        self.pblks_str[blk] = self.pblks_str[blk] + self.fld['subst']( self, self.tblks[blk]['blk_str'], context )
             
         return(self.pblks_str[blk])
 
@@ -260,5 +265,20 @@ class TemplateRex:
     def render(self, context={}):
         return self.render_sec('BLK_MAIN', context)
 
+    # ----------------------
+    def substitute_fmt(self, str_in, context):
 
+        rtn = str_in.format(**context)
+        return rtn
+    fld_struct['pyfmt']['subst'] = substitute_fmt
 
+    # ----------------------
+    def substitute_re(self, str_in, context):
+        _str = str
+        def process_capture(obj):
+            try: return _str(context[obj.group(1)])
+            except: return "" 
+
+        rtn = self.fld['re'].sub(process_capture, str_in)
+        return rtn
+    fld_struct['default']['subst'] = substitute_re

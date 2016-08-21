@@ -3,12 +3,13 @@ import pprint
 import sys
 import os
 import json
+import datetime
 
 # The test object
 sys.path.append('../')
 from template import TemplateRex
 
-fspec_template =  't-detail.html'
+fspec_template =  't-detail_base.html'
 fspec_tsections =  "./test_data/tsections_base.py"
 fspec_render =  "./test_data/trender_base.html"
 
@@ -24,26 +25,6 @@ tdata_make_flg = 0
 
 class TestCase(unittest.TestCase):
   
-  # ----------------------
-  def test_template_base_process(self):
-
-    trex = TemplateRex(fname=fspec_template)
-
-    if tdata_make_flg:
-      fid = open( fspec_tsections  ,'w')
-      pprint.pprint(trex.tsections,stream=fid)
-      print("Creating ",fspec_tsections," test data")
-      fid.close()
-
-    if display_flg:
-      pprint.pprint(trex.tsections)
-
-    fid = open( fspec_tsections,'r')
-    tsections_str = fid.read()
-    fid.close()
-
-    self.assertTrue(trex.tsections,tsections_str)
-
   # ----------------------
   def test_template_base_render(self):
     trex = TemplateRex(fname=fspec_template)
@@ -61,6 +42,10 @@ class TestCase(unittest.TestCase):
     rtn = trex.render_sec('tbl')
     rtn = trex.render_sec('ftr')
     rtn = trex.render_sec('content')
+    
+    date_now = datetime.datetime(2017,7,17)
+    rtn = trex.render_sec('incl_note',{'date_now':date_now})
+    
     rtn_str = trex.render()
 
     if display_flg:
@@ -70,7 +55,7 @@ class TestCase(unittest.TestCase):
       fid = open( fspec_render  ,'w')
       fid.write(rtn_str)
       fid.close()
-      print("\nCreating!!!! ",fspec_render," test data")
+      print("Creating!!!! {0} test data".format(fspec_render))
 
     fid = open( fspec_render,'r')
     trender_str = fid.read()

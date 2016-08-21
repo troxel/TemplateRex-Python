@@ -124,4 +124,3 @@ if __name__ == '__main__':
         stats = Stats(p)
         stats.sort_stats('time', 'calls')
         stats.print_stats()
-

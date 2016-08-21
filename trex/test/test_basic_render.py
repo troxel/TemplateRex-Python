@@ -4,19 +4,19 @@ import sys
 import json
 
 # The test object
-    
+   
 sys.path.append('../')
 from template import TemplateRex
 
-fspec_template =  't-home.html'
-fspec_tsections =  "./test_data/tsections.py"
-fspec_render =  "./test_data/trender.html"
+fspec_template =  't-basic_render.html'
+fspec_tblks =  "./test_data/basic_render_tblks.py"
+fspec_render =  "./test_data/basic_render.html"
 
 fspec_data_cell =  "./test_data/data_cell.json"
 fspec_data_flwr =  "./test_data/data_flwr.json"
 
-display_flg = 0
-tdata_make_flg = 0
+display_flg = False
+tdata_make_flg = False
 
 class TestCase(unittest.TestCase):
 
@@ -26,15 +26,15 @@ class TestCase(unittest.TestCase):
     trex = TemplateRex(fname=fspec_template)
 
     if tdata_make_flg:
-      fid = open( fspec_tsections  ,'w')
-      pprint.pprint(trex.tsections,stream=fid)
-      print("Creating ",fspec_tsections," test data")
+      fid = open( fspec_tblks  ,'w')
+      pprint.pprint(trex.tblks,stream=fid)
+      print("Creating ",fspec_tblks," test data")
       fid.close()
 
-    fid = open( fspec_tsections,'r')
-    tsections_str = fid.read()
+    fid = open( fspec_tblks,'r')
+    tblks_str = fid.read()
     fid.close()
-    self.assertTrue(trex.tsections,tsections_str)
+    self.assertTrue(trex.tblks,tblks_str)
     
   # ----------------------------  
   def test_template_render(self):
@@ -101,7 +101,7 @@ class TestCase(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    
+
     if len(sys.argv) > 1:
         arg1 = sys.argv.pop()
         if arg1 == '-d':

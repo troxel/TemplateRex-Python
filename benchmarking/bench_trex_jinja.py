@@ -20,6 +20,18 @@ from timeit import Timer
 from jinja2 import Environment, FileSystemLoader
 from jinja2.utils import generate_lorem_ipsum
 
+# wheezy ----------------------
+import cgi
+escape = cgi.escape
+
+PY3 = sys.version_info[0] >= 3
+s = PY3 and str or unicode
+
+#from wheezy.template.engine import Engine
+#from wheezy.template.ext.core import CoreExtension
+#from wheezy.template.loader import FileLoader
+# -------------------------
+
 # -- relative location -- 
 import sys
 sys.path.append("../trex")
@@ -82,8 +94,23 @@ def test_trex():
     return trex.render(context)
 # -----------------------------------------------------
 
+# *** wheezy **** 
+# -----------------------------------------------------
+#searchpath = ['./wheezy_templates']
+
+#engine = Engine(
+#    loader=FileLoader(searchpath),
+#    extensions=[CoreExtension()]
+#)
+#wheezy_template = engine.get_template('wheezy_index.html')
+#def test_wheezy():
+#    #pp.pprint(context)
+#    return wheezy_template.render(context)
+# -------------------------------------------
+
 #rtn = test_jinja(); print(rtn); sys.exit()
-#rtn = test_trex();  print(rtn); sys.exit()
+rtn = test_trex();  print(rtn); sys.exit()
+#rtn = test_wheezy();  print(rtn); sys.exit() # could not get to run
 
 if __name__ == '__main__':
     sys.stdout.write('Benchmark:\n')

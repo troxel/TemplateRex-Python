@@ -1,60 +1,127 @@
-import re
+# -*- coding: utf-8 -*-
+"""
+    Benchmark against Jinja2 template engine to gauge the effect of 
+    various coding changes. 
+"""
 import sys
-from timeit import Timer
+from os.path import join, dirname, abspath
+
+try:
+    from cProfile import Profile
+except ImportError:
+    from profile import Profile
 
 from pstats import Stats
 from datetime import datetime
+from timeit import Timer
 
-ctx = {'what':3,'verb':1,'verb1':2,'verb2':3,'verb3':'ran','verb4':'ran','verb5':'ran','verb6':'ran','verb7':'ran'}
+import re
 
-string_fmt = """string to replace things the little {what} {verb:.2f} over"""
-string_sub = """string to replace things the little $what $verb over"""
+str_in = "{yo} {yo1} Ths is a test {name} here {that} and {more} and yet {morethis} double on {day} which is {beer} with {ing}"
+#str_in = str_in + " " + str_in + " " + str_in + " " + str_in
+contxt = {'name':"Joe",'that':"howdy",'more':"good stuff",'morethis':"yet more",'day':"Friday",'beer':"IPA",'ing':"hops",'yo':"",'yo1':""}
+contxt_copy = contxt.copy()
+contxt_default = {'name':"",'that':"",'more':"",'morethis':"",'yo':"",'day':"",'beer':"",'ing':"",'yo':"",'yo1':""}
+key_lst = ['yo','yo1','name','that','more','morethis','yo','day','beer','ing','name1']
 
 
-def parse_fmt():
-    string = string_fmt.format(**ctx)
-    return string
+id_re     = re.compile(r'{([^}]+)}', re.DOTALL)
 
-#string = parse_fmt();print(string)
+def sub_var():
 
-id_pattern = r'\$([a-zA-Z][\w]+)'
-id_re      = re.compile(id_pattern,re.DOTALL)
+        def process_capture(obj):
+            try: return str(contxt[obj.group(1)])
+            except: return "" 
 
-def parse_sub():
-    def process_capture(obj):
-        try: return str(format(ctx[obj.group(1)],'.2f'))
-        except: return ""
+        rtn = id_re.sub(process_capture, str_in)
+        return rtn
 
-    rtn = id_re.sub(process_capture, string_sub)
-    #print(rtn)
-    return rtn
+######################
+# Really really slow        
+#import string
 
-def parse_parts():
-    #rtn = "string to replace things the little " + str(ctx['what']) + " " + str(ctx['verb']) + " over"
-    str_lst = ("string to replace things the little ",'what'," ",'verb'," over")
+#class BlankFormatter(string.Formatter):
+#    def __init__(self, default=''):
+#        self.default=default
 
-    _str = str
+#    def get_value(self, key, args, kwds):
+#        if isinstance(key, str):
+#            return kwds.get(key, self.default)
+#        else:
+#            Formatter.get_value(key, args, kwds)
+#fmt=BlankFormatter()
+#rtn = fmt.format(str_in,**contxt)
+#########################        
+        
+######################
+# Not bad speed wise 
+# Ratio 2.6901708174699337 vs ~5
+# doesn't work with python2
+#class format_dict(dict):
+#    def __missing__(self, key):
+#        return "..."
+#spec_dict = format_dict(contxt)
+#rtn = str_in.format(**spec_dict)
 
-    rtn = ""
-    for i,s in enumerate(str_lst):
-        if i % 2:
-            rtn = rtn + _str(format(ctx[s],'.2f'))
-        else:
-            rtn = rtn + s
-
-    return rtn
-
-#string = parse_parts(); print(string); sys.exit(0)
-#string = parse_sub(); print(string)
-
-tm={}
-for test in 'parse_fmt','parse_sub', 'parse_parts':
-        t = Timer(setup='from __main__ import %s as bench' % test, stmt='bench()')
+######################
+ 
+ 
+######################
+# Ratio 2.207058711959082
+# doesn't work with python2
+#from collections import defaultdict 
+#        def dfl():
+#            return ""
+        
+#        d = defaultdict(dfl, contxt)
+#        rtn = str_in.format(**d)
+######################
+        
+def fmt_var():
+    
+        try: rtn = str_in.format(**contxt)
+        except: 
+            #print('e')
+            #contxt_copy.update({ k:"" for k in key_lst if k not in contxt}) # ratio 2.1
+            #rtn = str_in.format(**contxt_copy)
+            
+            # !Winner! ratio 2.7 works with python2
+            # Compared to ratio 4 when the try does not fail roughly 30% faster 
+            contxt_default.update(contxt) 
+            rtn = str_in.format(**contxt_default)
+            
+        return rtn
+        
+print(sub_var())    
+print(fmt_var())    
+ 
+ 
+if __name__ == '__main__':
+    tm = {}   
+    sys.stdout.write('Benchmark:\n')
+    for test in 'sub_var','fmt_var':
+        t = Timer(setup='from __main__ import %s as bench' % test,
+                  stmt='bench()')
         sys.stdout.write(' >> %-20s<running>' % test)
         sys.stdout.flush()
+        tm[test] = t.timeit(number=1750)
+        sys.stdout.write('\r    %-20s%.9f seconds\n' % (test, tm[test] / 1750))
 
-        tm[test] = t.timeit(number=2750)
-        sys.stdout.write('\r    %-20s%.9f seconds\n' % (test, tm[test] / 10000))
+    print("Ratio",tm['sub_var']/tm['fmt_var'])
 
-sys.stdout.write('Ratio    %.2f seconds\n' % (tm['parse_sub'] / tm['parse_fmt']) )
+
+    if '-p' in sys.argv:
+        print('Jinja profile')
+        p = Profile()
+        p.runcall(test_jinja)
+        stats = Stats(p)
+        stats.sort_stats('time', 'calls')
+        stats.print_stats()
+
+        print('trex profile')
+        p = Profile()
+        p.runcall(test_trex)
+        stats = Stats(p)
+        stats.sort_stats('time', 'calls')
+        stats.print_stats()
 

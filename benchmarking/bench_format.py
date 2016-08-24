@@ -2,7 +2,6 @@
 """
     Benchmark against Jinja2 template engine to gauge the effect of 
     various coding changes. 
-
 """
 import sys
 from os.path import join, dirname, abspath

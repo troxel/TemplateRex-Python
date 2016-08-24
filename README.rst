@@ -42,7 +42,7 @@ Python Code::
 
     trex = TemplateRex(fname='t-mytemplate.html')
 
-    row = [ {'username:'Mary'},{'username':'Sam'} ]
+    row = [ {'cellId:'A123','volt':1.21}, {'cellId:'B321','volt':1.52} ]
 
     for row in row_data:
         trex.render_sec('row', row )
@@ -63,8 +63,9 @@ Template text::
     <body>
     
     <table>
+        <tr><th>Cell ID </th><th> Voltage </th></tr>
         <!-- BEGIN=row -->
-        <tr><td>Hello $username</td></tr>
+        <tr><td>$cellId </td><td> $volt   </td></tr>
         <!-- END=row -->
     </table>
     </body>
@@ -88,8 +89,8 @@ Python code::
 
     row = [ {'username:'Mary'},{'username':'Sam'} ]
     
-    bat_lo_cell = [{ 'cellid':321,'volt':1.5}, { 'cellid':101,'volt':1.7}] }
-    bat_hi_cell = [{ 'cellid':102,'volt':2.5}, { 'cellid':141,'volt':2.7}] }
+    bat_lo_cell = [{ 'cellId':321,'volt':1.5}, { 'cellId':101,'volt':1.7}] }
+    bat_hi_cell = [{ 'cellId':102,'volt':2.5}, { 'cellId':141,'volt':2.7}] }
 
     for row in bat_lo_cell:
         trex.render_sec('row', row )
@@ -116,7 +117,7 @@ Template text::
     <caption>$caption</caption>
         <tr><th>Cell ID</th><th>Voltage</th></tr>
         <!-- BEGIN=row -->
-        <tr><td>$cellid </td><td> $volt</td></tr>
+        <tr><td>$cellId </td><td> $volt</td></tr>
         <!-- END=row -->
     </table>
     <!-- END=tbl -->
@@ -125,12 +126,131 @@ Template text::
 
     # ---------------------
 
-This will render two tables one after the other with the unique caption and data. Over course this could be
-done with a for-loop inside a for-loop but given as it for clarity. 
+This will render two tables one following the other with the unique caption 
+and data. Of course this could be done with a nested for-loop but given 
+as is for clarity. 
 
 
+Template Inheritance
+~~~~~~~~~~~~~~~~~~~~
 
+You can specify a base or layout template. If the first line in a template 
+call contains a BASE specifier such as 
+
+<!-- BASE=t-layout.html -->
+
+The template algorithm will search the path for the base 
+template as specified and parses this template first.  
 
  
+Called Template text::
+
+    # --- Template t-mytemplate.html --------
+    <!-- BASE=t-layout.html -->
+
+    <!-- BEGIN=content -->
+    <div class="conent">
+    
+    ... content here ...
+    
+    </div>
+    <!-- END=content -->
+
+    ... surrounding html ...     
+
+    # ---------------------
+
+
+Base Template text::
+
+    # --- Template t-layout.html --------
+    <!doctype html>
+    <html>
+    <head>...</head>
+    <script type="text/javascript" src="../static/jquery.js"></script>
+    <link rel="stylesheet" href="../static/style.css" type="text/css" />
+    <body>
+    <header> ...heading stuff... </header>
+    
+    $content
+    
+    <footer> ...footing stuff... </footer>
+    </body>
+    </html>
+
+Python Code::
+
+    # --- Python Code ----
+
+    trex = TemplateRex(fname='t-mytemplate.html')
+
+    ....
+    trex.render_sec('content', context_dict)
+    ....
+
+    rendered_str = trex.render()
+
+    # ---------------------
+ 
+
+Template Includes
+~~~~~~~~~~~~~~~~~
+
+Another basic capability is to include snippets within a templates. If
+during processing an include statement is encountered such as 
+    
+    <!- INCLUDE=t-header.html -->
+    
+The contents of that template are included in the calling template 
+        
+Function/Filters
+~~~~~~~~~~~~~~~~~~~~
+
+Functions (sometimes called filters in other template engines) calls can
+be specified within the template text with the following syntax::
+
+    &function_to_be called($args1,'arg2',kwarg1=True,kwarg2='test')
+
+The function name (behind the &) has to be either one of the builtin functions
+or a custom registered function call. If a function does not have args the 
+follwing matching parenthesis are required. 
+
+The args can either be string literals identified with quotes, True or False
+booleans, integer or floating point numbers or a context variable. Context 
+variables are identified with either a leading $ or just bare word - using the 
+$ delimiter is faster and encouraged for clarity.  If a context variable is 
+not found in the context the function call is silent. 
+
+Functions can be easily registered in two ways. The easiest is to specify
+custom functions during object creation the func_reg keyword. 
+
+For example::  
+
+    func_custom_dict = {'format':format, 'myfunc':myfunc}
+    trex = TemplateRex(fname=fspec_template, func_reg=func_custom_dict)
+
+Which is equivalent to::
+
+    func_custom_dict = {'format':format, 'myfunc':myfunc}
+
+    trex = TemplateRex()
+    trex.functions.update( func_custom_dict )
+    trex.get_template(fspec_template)
+
+would register the python format function and your own custom myfunc function.
+Then you could use the following in your template: 
+
+    Voltage is: &format($voltage,'.1f')
+
+Where voltage is a context variable and needs to be passed in the context
+dictionary of the render call (either render_sec() or render() ) where the 
+function is exists.  
+
+Builtin Function/Filters
+~~~~~~~~~~~~~~~~~~~~
+TBD - look in functions.py for code
+
+
+
 
 

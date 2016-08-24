@@ -18,7 +18,7 @@
 
 <body>
 
-<!-- BEGIN name=content -->
+<!-- BEGIN=content -->
 Main Content 
 Title: <pre>&center($title,width=70)</pre>
 
@@ -26,17 +26,15 @@ Comment: &nltobr($comment)
 
 Todays Date: &dateformat($now,fmt='%Y/%m/%d %T')
 
-<!-- BEGIN name=tbl -->
+<!-- BEGIN=tbl -->
 <table>
   <caption>List of flowers</caption>
-  <!-- BEGIN name=row -->
+  <!-- BEGIN=row -->
 	<tr class="&cycler('odd', 'even')"><td>$inc</td><td>Name: $name</td><td>Color: $color</td></tr>
-	<!-- END name=row -->
+	<!-- END=row -->
 </table>
-<!-- END name=tbl -->
-
-<!-- END name=content -->
-
-
+<!-- END=tbl -->
+Voltage is: &format(voltage,'.1f')
+<!-- END=content -->
 </body>
 </html>

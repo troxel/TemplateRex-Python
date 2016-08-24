@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+ # -*- coding: utf-8 -*-
 """
     trex.functions
      
@@ -31,7 +31,6 @@ def default(value, default_value=u'', boolean=False):
     defined, otherwise ``'my_variable is not defined'``. If you want
     to use default with variables that evaluate to false you have to
     set the second parameter to `true`:
-
     """
     if isinstance(value, Undefined) or (boolean and not value):
         return default_value
@@ -40,6 +39,10 @@ def default(value, default_value=u'', boolean=False):
 def center(value, width=80):
     """Centers the value in a field of a given width."""
     return value.center(width)
+
+def format(value, specifier ):
+    """ Formats a variable. Refer to python docs on format specifications."""
+    return format(value,specifier)
 
 def filesizeformat(value, binary=False):
     """Format the value like a 'human-readable' file size (i.e. 13 kB,
@@ -142,6 +145,8 @@ def dateformat(dt_obj,fmt='%Y-%m-%d'):
 
 #-------------------------------------------------------
 def now(fmt='%Y-%m-%d'):
+    """ Print the current time ie now """
+    
     now = datetime.now()
     return now.strftime(fmt)
 

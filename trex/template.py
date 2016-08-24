@@ -18,20 +18,34 @@ class TemplateRex:
     cmnt_postfix = '-->'
     func_prefix = '&'
     
+    # ------------------------
+    # This structure allows the use of default fld ($var) or pyformat fld ({var})
     fld_struct = {'default':{'pre':'$','fld':'([a-zA-Z_]\w*)','post':''}, 
                   'pyfmt':  {'pre':'{', 'fld':'([a-zA-Z_][\S]*?)','post':'}'} }
+    
+    def substitute_fmt(self, str_in, context):
 
+        rtn = str_in.format(**context)
+        return rtn
+    fld_struct['pyfmt']['subst'] = substitute_fmt
+
+    def substitute_re(self, str_in, context):
+        _str = str
+        def process_capture(obj):
+            try: return _str(context[obj.group(1)])
+            except: return "" 
+
+        rtn = self.fld['re'].sub(process_capture, str_in)
+        return rtn
+    fld_struct['default']['subst'] = substitute_re
+    # ------------------------
+    
     # ----------------------
-    def __init__(self, **args):
-
-        #if 'fname' in args.keys():
-        #    self.fname = args['fname']
-        #else: raise Exception('fname arguement required')
+    def __init__(self, **kwargs):
 
         self.cmnt_verbose = 1
     
         self.tblks={}
- 
         self.pblks_str = { 'BLK_MAIN':""}   # processed sections rendered str
         self.pblks_lst = { 'BLK_MAIN':[]}   # processed sections as lst
         self.cblks     = { 'BLK_MAIN':[]}  # child sections
@@ -49,26 +63,35 @@ class TemplateRex:
 
         for key in self.fld_struct:
             fld = self.fld_struct[key]
-            fld['re'] = re.compile(  re.escape(fld['pre']) + fld['fld']+ fld['post'], re.DOTALL )
+            fld['re'] = re.compile( re.escape(fld['pre']) + fld['fld'] + fld['post'], re.DOTALL ) # Escape for the default delim '$'
+            fld['re_delim'] = re.compile( '[' + fld['pre'] + fld['post'] + ']', re.DOTALL )       # Escape not required for character class
      
         self.fld = self.fld_struct['default'] 
-       
+         
         self.BLK_MAIN_pre  = "{0} {1} {2}".format(self.cmnt_prefix,"BEGIN=BLK_MAIN",self.cmnt_postfix)
         self.BLK_MAIN_post = "{0} {1} {2}".format(self.cmnt_prefix,"END=BLK_MAIN",self.cmnt_postfix)
 
-        for key in args.keys():
-            self.__dict__[key] = args[key]
-            
+        self.functions = functions.FUNCTIONS
+                 
+        # custom function 
+        if 'func_reg' in kwargs: 
+            self.functions.update(kwargs['func_reg'])
+
+        # Set template dirs
+        if 'template_dirs' in kwargs: 
+            self.template_dirs = kwargs['template_dirs']
+
         # load template based on a search list
-        self.get_template(self.fname)
+        if 'fname' in kwargs: 
+            self.get_template(kwargs['fname'])
         
         """
         print("***********")
-        pp.pprint(self.tblks)
-        pp.pprint(self.cblks)
+        pp.pprint(self.tblks); pp.pprint(self.cblks)
         print("***********")
         sys.exit()
         """
+        
     # ----------------------
     def get_template(self,fname):
         """ Loads a template into self.tsection """
@@ -124,8 +147,7 @@ class TemplateRex:
         self.parse_functions()
 
         if not self.tblks:
-            print('No Template File %s Found' % (fname),'in search path -> ', ' , '.join(self.template_dirs))
-            raise
+            raise Exception('No Template File "{0}" Found in search path -> {1}'.format(fname, ' , '.join(self.template_dirs)))
         return(self.tblks)
 
     # ----------------------
@@ -134,8 +156,7 @@ class TemplateRex:
             fspec = os.path.join(dir_spec, fname)
             if os.path.isfile(fspec):
                 return(fspec)
-        print('No Template File {0} Found in search path {1}'.format(fname), ','.join(self.template_dirs))
-        raise
+        raise Exception('No Template File "{0}" Found in search path -> {1}'.format(fname, ' , '.join(self.template_dirs)))
 
     # ----------------------
     def parse_template(self, t_str):
@@ -173,8 +194,9 @@ class TemplateRex:
 
         # ----------------------------
         def arg_study(arg):
-     
-            (arg,cnt) = self.fld['re'].subn('',arg)
+
+            # Remove fld delimiters (ie $ or {}) and if present it is a context var
+            (arg,cnt) = self.fld['re_delim'].subn('',arg)
             if cnt: return arg,True                 # context
         
             (arg,cnt) = self.quotes_re.subn('',arg)
@@ -185,24 +207,23 @@ class TemplateRex:
                     
             try: return int(arg),False
             except: pass
-
             try: return float(arg),False
             except: pass
     
-            return arg,False
-
+            return arg,True  # Assume context if falls though from above
+            
         def parse_capture(obj):
 
             func_name = obj.group(1)
             arg_str = obj.group(2)
-
+            
             # Create unique slug name
             arg_lst = re.split('\s*,\s*',arg_str)
             arg_slug = "_".join(arg_lst)   
             slug = "FUNC_" + func_name + "_" + arg_slug    
             slug = re.sub('\W+',"",slug)
 
-            func_ref = functions.FUNCTIONS[func_name]   # Should we check if exists or just default to something?
+            func_ref = self.functions[func_name]   # Should we check if exists or just default to something?
             
             self.tblks[blk_name]['funcs'][slug] = {'args_ctx':[],'args':[],'args_rnd':[],'kwargs':{},'ref':func_ref}
             
@@ -248,14 +269,19 @@ class TemplateRex:
             self.pblks_lst[child] = []
 
         # Function processing
-        for slug in self.tblks[blk]['funcs']:
-            func_args = self.tblks[blk]['funcs'][slug]['args_rnd'] 
-               
+        def call_function(slug):
+            func_args = self.tblks[blk]['funcs'][slug]['args_rnd']  # pos arg rending scratchpad
             for inx in self.tblks[blk]['funcs'][slug]['args_ctx']:
-                func_args[inx] = context[self.tblks[blk]['funcs'][slug]['args'][inx]]
-                                                            
+                func_arg = self.tblks[blk]['funcs'][slug]['args'][inx]
+                if func_arg in context: func_args[inx] = context[func_arg]
+                else: return("")
+                
             func_kwargs = self.tblks[blk]['funcs'][slug]['kwargs']
-            context[slug] = self.tblks[blk]['funcs'][slug]['ref'](*func_args,**func_kwargs)
+        
+            return (self.tblks[blk]['funcs'][slug]['ref'](*func_args,**func_kwargs))
+        
+        for slug in self.tblks[blk]['funcs']:
+            context[slug] = call_function(slug)
 
         self.pblks_str[blk] = self.pblks_str[blk] + self.fld['subst']( self, self.tblks[blk]['blk_str'], context )
             
@@ -264,21 +290,3 @@ class TemplateRex:
     # ----------------------
     def render(self, context={}):
         return self.render_sec('BLK_MAIN', context)
-
-    # ----------------------
-    def substitute_fmt(self, str_in, context):
-
-        rtn = str_in.format(**context)
-        return rtn
-    fld_struct['pyfmt']['subst'] = substitute_fmt
-
-    # ----------------------
-    def substitute_re(self, str_in, context):
-        _str = str
-        def process_capture(obj):
-            try: return _str(context[obj.group(1)])
-            except: return "" 
-
-        rtn = self.fld['re'].sub(process_capture, str_in)
-        return rtn
-    fld_struct['default']['subst'] = substitute_re

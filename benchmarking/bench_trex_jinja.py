@@ -109,7 +109,7 @@ def test_trex():
 # -------------------------------------------
 
 #rtn = test_jinja(); print(rtn); sys.exit()
-rtn = test_trex();  print(rtn); sys.exit()
+#rtn = test_trex();  print(rtn); sys.exit()
 #rtn = test_wheezy();  print(rtn); sys.exit() # could not get to run
 
 if __name__ == '__main__':

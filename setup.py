@@ -16,6 +16,7 @@ setup(name='TemplateRex',
       keywords="template web html text",
       url='https://github.com/troxel/TemplateRex-Python',
       include_package_data=False,
+      install_requires=['MarkupSafe'],
       classifiers=[
         'Environment :: Web Environment',
         'Intended Audience :: Developers',

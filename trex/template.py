@@ -6,13 +6,16 @@ import re
 import fnmatch
 import pprint
 import marshal
-import functions
+
+import trex.functions
 
 pp = pprint.PrettyPrinter(indent=4)
 
+sys.stdout = sys.stderr
+
 class TemplateRex:
     
-    template_dirs = ["./", "./templates", '/']
+    template_dirs = ["./", "./templates"]
     
     cmnt_prefix = '<!--'
     cmnt_postfix = '-->'
@@ -71,13 +74,13 @@ class TemplateRex:
         self.BLK_MAIN_pre  = "{0} {1} {2}".format(self.cmnt_prefix,"BEGIN=BLK_MAIN",self.cmnt_postfix)
         self.BLK_MAIN_post = "{0} {1} {2}".format(self.cmnt_prefix,"END=BLK_MAIN",self.cmnt_postfix)
 
-        self.functions = functions.FUNCTIONS
+        self.functions = trex.functions.FUNCTIONS
                  
         # custom function 
         if 'func_reg' in kwargs: 
             self.functions.update(kwargs['func_reg'])
 
-        # Set template dirs
+        # Set template dirs - search list
         if 'template_dirs' in kwargs: 
             self.template_dirs = kwargs['template_dirs']
 
@@ -147,7 +150,7 @@ class TemplateRex:
         self.parse_functions()
 
         if not self.tblks:
-            raise Exception('No Template File "{0}" Found in search path -> {1}'.format(fname, ' , '.join(self.template_dirs)))
+            raise Exception('No Template "{0}" Found. Search path->{1} : cwd->{2}'.format(fname,','.join(self.template_dirs),os.getcwd()))
         return(self.tblks)
 
     # ----------------------
@@ -156,7 +159,7 @@ class TemplateRex:
             fspec = os.path.join(dir_spec, fname)
             if os.path.isfile(fspec):
                 return(fspec)
-        raise Exception('No Template File "{0}" Found in search path -> {1}'.format(fname, ' , '.join(self.template_dirs)))
+        raise Exception('No Template "{0}" Found. Search path->{1} : cwd->{2}'.format(fname,','.join(self.template_dirs),os.getcwd()))
 
     # ----------------------
     def parse_template(self, t_str):
@@ -216,14 +219,17 @@ class TemplateRex:
 
             func_name = obj.group(1)
             arg_str = obj.group(2)
+
+            try:    func_ref = self.functions[func_name]
+            except: 
+                print("Error!: Template Function not found: {}".format(func_name))
+                return("")
             
             # Create unique slug name
             arg_lst = re.split('\s*,\s*',arg_str)
             arg_slug = "_".join(arg_lst)   
             slug = "FUNC_" + func_name + "_" + arg_slug    
             slug = re.sub('\W+',"",slug)
-
-            func_ref = self.functions[func_name]   # Should we check if exists or just default to something?
             
             self.tblks[blk_name]['funcs'][slug] = {'args_ctx':[],'args':[],'args_rnd':[],'kwargs':{},'ref':func_ref}
             
@@ -290,3 +296,4 @@ class TemplateRex:
     # ----------------------
     def render(self, context={}):
         return self.render_sec('BLK_MAIN', context)
+

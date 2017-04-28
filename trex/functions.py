@@ -1,4 +1,4 @@
- # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
     trex.functions
      
@@ -146,7 +146,6 @@ def dateformat(dt_obj,fmt='%Y-%m-%d'):
 #-------------------------------------------------------
 def now(fmt='%Y-%m-%d'):
     """ Print the current time ie now """
-    
     now = datetime.now()
     return now.strftime(fmt)
 
@@ -155,6 +154,34 @@ def nltobr(string):
     string = re.sub(r"\n","<br>\n",string,re.DOTALL)
     return string
 
+#-------------------------------------------------------
+def select_list(name,values,sel,labels={},**attr):
+
+    #id_str = ''
+    #if id: id_str = 'id="{}"'.format(id)
+    attr_lst = []
+    for key,val in attr.items():
+       attr_lst.append('{}="{}" '.format(key,val))
+    attr_str = " ".join(attr_lst)
+
+    string = '<select name="{}" {}>\n'.format(name,attr_str)
+    for val in values:
+       if val in labels:
+          label = labels[val]
+       else:
+          label = val
+
+       selected_str = ''
+       if val == sel:
+          selected_str = 'SELECTED'
+          print(val,sel)
+          print(selected_str)
+          
+       string += '<option value="{}" {}> {} </option>\n'.format(val,selected_str,label)
+
+    string += "</select>"
+
+    return string
 
 FUNCTIONS = {
     'center':               center,
@@ -166,4 +193,6 @@ FUNCTIONS = {
     'dateformat':           dateformat,
     'nltobr':               nltobr,
     'now':                  now,
+    'select_list':          select_list,
 }
+i

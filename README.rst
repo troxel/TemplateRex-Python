@@ -37,6 +37,7 @@ Synopsis
 Here is a small hello world example.
 
 Python Code::
+    from templaterex import TemplateRex
 
     # --- Python Code ----
 
@@ -84,6 +85,7 @@ specified for example.
 Python code::
 
     # --- Python Code ----
+    from templaterex import TemplateRex
 
     trex = TemplateRex(fname='t-mytemplate.html')
 
@@ -181,6 +183,7 @@ Base Template text::
 Python Code::
 
     # --- Python Code ----
+    from templaterex import TemplateRex
 
     trex = TemplateRex(fname='t-mytemplate.html')
 

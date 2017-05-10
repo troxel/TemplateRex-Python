@@ -7,7 +7,7 @@ def readme():
 from distutils.core import setup
 setup(name='TemplateRex',
       version='1.0',
-      packages=['trex'],
+      packages=['templaterex'],
       license='BSD',
       author='Steve Troxel',
       author_email='troxel@perlworks.com',

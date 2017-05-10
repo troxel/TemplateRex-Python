@@ -37,9 +37,9 @@ Synopsis
 Here is a small hello world example.
 
 Python Code::
-    from templaterex import TemplateRex
 
     # --- Python Code ----
+    from templaterex import TemplateRex
 
     trex = TemplateRex(fname='t-mytemplate.html')
 

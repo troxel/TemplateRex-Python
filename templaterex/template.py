@@ -7,7 +7,7 @@ import fnmatch
 import pprint
 import marshal
 
-import trex.functions
+import templaterex.functions
 
 pp = pprint.PrettyPrinter(indent=4)
 
@@ -22,14 +22,14 @@ class TemplateRex:
     func_prefix = '&'
     
     # ------------------------
-    # This structure allows the use of default fld ($var) or pyformat fld ({var})
-    fld_struct = {'default':{'pre':'$','fld':'([a-zA-Z_]\w*)','post':''}, 
-                  'pyfmt':  {'pre':'{', 'fld':'([a-zA-Z_][\S]*?)','post':'}'} }
+    # This structure allows the use of default fld ($var or ${var}) or pyformat fld ({var})
+    fld_struct = {'default':{'pre':'$','fld':'{?([a-zA-Z_]\w+)}*','post':''},  # Added {? and }? 
+                  'pyfmt':  {'pre':'{', 'fld':'([a-zA-Z_][\S]+?)','post':'}'} }
     
     def substitute_fmt(self, str_in, context):
-
         rtn = str_in.format(**context)
         return rtn
+
     fld_struct['pyfmt']['subst'] = substitute_fmt
 
     def substitute_re(self, str_in, context):
@@ -74,7 +74,7 @@ class TemplateRex:
         self.BLK_MAIN_pre  = "{0} {1} {2}".format(self.cmnt_prefix,"BEGIN=BLK_MAIN",self.cmnt_postfix)
         self.BLK_MAIN_post = "{0} {1} {2}".format(self.cmnt_prefix,"END=BLK_MAIN",self.cmnt_postfix)
 
-        self.functions = trex.functions.FUNCTIONS
+        self.functions = templaterex.functions.FUNCTIONS
                  
         # custom function 
         if 'func_reg' in kwargs: 

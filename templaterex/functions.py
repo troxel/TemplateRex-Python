@@ -40,9 +40,10 @@ def center(value, width=80):
     """Centers the value in a field of a given width."""
     return value.center(width)
 
-def format(value, specifier ):
+def format_float(value, specifier):
     """ Formats a variable. Refer to python docs on format specifications."""
-    return format(value,specifier)
+    rtn = format(float(value),specifier)
+    return rtn
 
 def filesizeformat(value, binary=False):
     """Format the value like a 'human-readable' file size (i.e. 13 kB,
@@ -188,6 +189,7 @@ FUNCTIONS = {
     'default':              default,
     'filesizeformat':       filesizeformat,
     'pprint':               pprint,
+    'format_float':         format_float,
     'truncate':             truncate,
     'cycler':               cycler,
     'dateformat':           dateformat,
@@ -195,4 +197,4 @@ FUNCTIONS = {
     'now':                  now,
     'select_list':          select_list,
 }
-i
+

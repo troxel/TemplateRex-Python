@@ -1,3 +1,3 @@
 
-from trex.template import TemplateRex
+from templaterex.template import TemplateRex
 

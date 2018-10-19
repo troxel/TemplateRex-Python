@@ -19,9 +19,10 @@ class TemplateRex:
 
     template_dirs = ["./", "./templates"]
 
-    cmnt_prefix = '<!--'
-    cmnt_postfix = '-->'
     func_prefix = '&'
+
+    # Dev mode inserts comments in output signifying fpsec/section block
+    dev_mode = False
 
     # ------------------------
     # This structure allows the use of default fld ($var or ${var}) or pyformat fld ({var})
@@ -50,10 +51,22 @@ class TemplateRex:
 
         self.cmnt_verbose = 1
 
+        # Override default html comments...
+        self.cmnt_prefix = '<!--'
+        if 'cmnt_prefix' in kwargs:
+            self.cmnt_prefix = kwargs['cmnt_prefix']
+
+        self.cmnt_postfix = '-->'
+        if 'cmnt_postfix' in kwargs:
+            self.cmnt_postfix = kwargs['cmnt_postfix']
+
+        if 'dev_mode' in kwargs:
+            self.dev_mode = kwargs['dev_mode']
+
         self.tblks={}
         self.pblks_str = { 'BLK_MAIN':""}   # processed sections rendered str
         self.pblks_lst = { 'BLK_MAIN':[]}   # processed sections as lst
-        self.cblks     = { 'BLK_MAIN':[]}  # child sections
+        self.cblks     = { 'BLK_MAIN':[]}   # child sections
         self.last_parent = ['BLK_MAIN']     # used to determine last found parent in recursive func
 
         self.block_pattern = self.cmnt_prefix + r'\s*BEGIN=(?P<nm>\w+)\s+(?P<opt>[\w=,]+)?\s*' + self.cmnt_postfix + r'(?P<blk>.*?)' + self.cmnt_prefix + r'\s*END=\1 ' + self.cmnt_postfix
@@ -143,11 +156,11 @@ class TemplateRex:
         if match:
              fname_base = match.group('nm')
              self.get_template(fname_base)
-             self.parse_template(file_str)
+             self.parse_template(file_str,fspec)
         else:
              # If main template wrap in a main block for parse_template
              file_str = self.BLK_MAIN_pre + file_str + self.BLK_MAIN_post
-             self.parse_template(file_str)
+             self.parse_template(file_str,fspec)
 
         # Process functions populates self.tblks[blk_name]['funcs']
         self.parse_functions()
@@ -165,7 +178,7 @@ class TemplateRex:
         raise Exception('No Template "{0}" Found. Search path->{1} : cwd->{2}'.format(fname,','.join(self.template_dirs),os.getcwd()))
 
     # ----------------------
-    def parse_template(self, t_str):
+    def parse_template(self, t_str,fspec):
 
         def parse_capture(obj):
             blk_name = obj.group('nm')
@@ -173,7 +186,7 @@ class TemplateRex:
             self.cblks[blk_name] = []
             self.last_parent.append(blk_name)
 
-            proc_rtn = self.parse_template(obj.group('blk'))  # recursive call group(2) is next template section
+            proc_rtn = self.parse_template(obj.group('blk'),fspec)  # recursive call group(2) is next template section
 
             #if obj.group('opt'): print("******");print(obj.group('opt'));
 
@@ -183,13 +196,21 @@ class TemplateRex:
             # Assign and init to template blk structure
             self.tblks[blk_name] = {}
 
-            self.tblks[blk_name]['blk_str'] = proc_rtn.lstrip()
+            if self.dev_mode:
+               blk_before = "{} Template:{} Section:{} Below {}\n".format(self.cmnt_prefix,fspec,blk_name,self.cmnt_postfix)
+               blk_above  = "{} Template:{} Section:{} Above {}\n".format(self.cmnt_prefix,fspec,blk_name,self.cmnt_postfix)
+               self.tblks[blk_name]['blk_str'] = blk_before + proc_rtn.lstrip() + blk_above
+            else:
+               self.tblks[blk_name]['blk_str'] = proc_rtn.lstrip()
+
+
             self.tblks[blk_name]['flds'] = self.fld['re'].findall(self.tblks[blk_name]['blk_str'])
             self.tblks[blk_name]['funcs'] = {}
 
             self.pblks_str[blk_name] = ""   # need to initialize to prevent key exceptions
             self.pblks_lst[blk_name] = []   # ...
 
+            # replaces the blk_str with blk_name variable
             return self.fld['pre'] + blk_name + self.fld['post']
 
         blk = self.block_re.sub(parse_capture, t_str, re.DOTALL)

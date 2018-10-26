@@ -253,6 +253,36 @@ Builtin Function/Filters
 ~~~~~~~~~~~~~~~~~~~~
 TBD - look in functions.py for code
 
+Options: Comment Character(s)
+~~~~~~~~~~~~~~~~~~~~
+
+HTML comment characters are the default <!-- and -->. However these are selectable. For example,
+here is an object creation with different comment prefix and postfix characters options. 
+
+    trex = TemplateRex(fname='dhcpcd-template.conf',cmnt_prefix='##-',cmnt_postfix='-##')
+    
+This will look through the template looking for:
+
+    ##- BEGIN=static_section -##
+    ...
+    ##- END=static_section -##
+
+Options: Development or Verbose Mode
+~~~~~~~~~~~~~~~~~~~~
+
+Sometimes it is convienent to see what the source of the templates in rendered template outputs. This mode can be selected with a
+dev_mode argument... for example:
+
+    trex = TemplateRex(fname='/etc/dhcpcd-template.conf',cmnt_prefix='##-',cmnt_postfix='-##',dev_mode=True)
+
+When the template is rendered there will be commented hints on the location and section of template is being used such as:    
+
+    ##- Template:/etc/dhcpcd-template.conf Section:static_section Below -##
+    interface eth0
+    static ip_address=10.10.80.202/24
+    static routers=10.10.80.1
+    static domain_name_servers=192.168.101.210
+    ##- Template:/etc/dhcpcd-template.conf Section:static_section Above -##
 
 
 

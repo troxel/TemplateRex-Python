@@ -256,26 +256,25 @@ TBD - look in functions.py for code
 Options: Comment Character(s)
 ~~~~~~~~~~~~~~~~~~~~
 
-HTML comment characters are the default <!-- and -->. However these are selectable. For example,
+HTML comment characters for specifying section blocks are the default <!-- and -->. However these are selectable. For example,
 here is an object creation with different comment prefix and postfix characters options. 
 
     trex = TemplateRex(fname='dhcpcd-template.conf',cmnt_prefix='##-',cmnt_postfix='-##')
     
-This will look through the template looking for:
+This will parse the template looking for section blocks delimited as:
 
     ##- BEGIN=static_section -##
-    ...
+    ... section block ... 
     ##- END=static_section -##
 
 Options: Development or Verbose Mode
 ~~~~~~~~~~~~~~~~~~~~
 
-Sometimes it is convienent to see what the source of the templates in rendered template outputs. This mode can be selected with a
-dev_mode argument... for example:
+Sometimes it is convienent to see what the file source of the templates used in rendered template outputs. This mode can be selected with a dev_mode argument. For example:
 
     trex = TemplateRex(fname='/etc/dhcpcd-template.conf',cmnt_prefix='##-',cmnt_postfix='-##',dev_mode=True)
 
-When the template is rendered there will be commented hints on the location and section of template is being used such as:    
+When the template is rendered on this object there will be commented hints about the location and section of templates used such as:    
 
     ##- Template:/etc/dhcpcd-template.conf Section:static_section Below -##
     interface eth0
